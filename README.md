@@ -49,3 +49,5 @@ In this specific example, the target binary that is consistently flashed to all 
 
 Finally, this repository contains an Arduino project for the mastercontroller. This platform has been chosen so it's easy for anyone who reads this to modify and use for different microcontroller families.
 
+Feel free to copy and adjust this script to your needs.
+
