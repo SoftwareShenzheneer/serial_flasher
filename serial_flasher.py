@@ -188,6 +188,7 @@ if __name__ == "__main__":
         # 1. Prepare the flashing commands
         if state == "FETCH_UNIQUE_BIN":
             print(f"[STATEMACHINE] FETCH_UNIQUE_BIN")
+            set_target_mode("FLASH_RETRY")
             # Catch the last unique binary and break the loop
             if unique_binary_list_index == len(unique_binary_list):
                 print(f"[STATEMACHINE] No more binaries available, exiting..")
@@ -274,7 +275,6 @@ if __name__ == "__main__":
             # Enter a wait state for the next target to be connected
             max_tries = 3
             input("Press enter to continue...\n")
-            set_target_mode("FLASH_RETRY")
         else:
             pass
 
