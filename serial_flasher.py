@@ -95,6 +95,15 @@ def set_target_mode(mode=None):
         if mode == "RESET":
             print(f"[STATE] RESET")
             sercom1.write(b'2')
+        if mode == "FLASH_NOK":
+            print(f"[STATE] FLASH_NOK")
+            sercom1.write(b'3')
+        if mode == "FLASH_RETRY":
+            print(f"[STATE] FLASH_RETRY")
+            sercom1.write(b'4')
+        if mode == "FLASH_OK":
+            print(f"[STATE] FLASH_OK")
+            sercom1.write(b'5')
         # Small delay to let the device settle - 100ms is fine
         time.sleep(0.1)
 
@@ -107,6 +116,7 @@ def flash_target(stage=None):
         print(f"[FLASH] Unique bin")
         try:
             subprocess.Popen(serial_command, stdout=subprocess.DEVNULL, shell=True).wait()
+            # subprocess.Popen(serial_command, shell=True).wait()
         except Exception as e:
             print(f"[DEBUG] [ERROR] Error with running subprocess.")
 
@@ -114,6 +124,7 @@ def flash_target(stage=None):
         print(f"[FLASH] Application")
         try:
             subprocess.Popen(application_command, stdout=subprocess.DEVNULL, shell=True).wait()
+            # subprocess.Popen(application_command,  shell=True).wait()
         except Exception as e:
             print(f"[DEBUG] [ERROR] Error with running subprocess.")
 
@@ -212,8 +223,13 @@ if __name__ == "__main__":
                 print(f"[UNIQUE_BIN] Attempts left: {max_tries}.")
                 if 0 == max_tries:
                     print(f"[UNIQUE_BIN] Aborting...")
-                    break
-                state = "FORCE_BOOT"
+                    # Turn on the RED LED, wait for user input and move on to a next unit. Upon pressing enter, set LED RED off
+                    set_target_mode("FLASH_NOK")
+                    # state = "FLASH_APPLICATION"
+                    state = "FETCH_UNIQUE_BIN"
+                    # break
+                else:
+                    state = "FORCE_BOOT"
                 # state = "FLASH_APPLICATION"
             else:
                 state = "FLASH_APPLICATION"
@@ -238,7 +254,14 @@ if __name__ == "__main__":
                 if sercom2 and sercom2.is_open:
                     data = sercom2.readline()
                     if data:
-                        line = data.decode('utf-8').strip()
+                        try:
+                            line = data.decode('utf-8').strip()
+                            set_target_mode("FLASH_OK");
+                            if "[PROD][OK]" in line:
+                                set_target_mode("FLASH_OK");
+                        except Exception as e:
+                            pass
+                            # print(line)
                         print(line)
                 # print(f"Breaker is: {max_num_of_lines}.")
                 max_num_of_lines = max_num_of_lines + 1
@@ -251,6 +274,7 @@ if __name__ == "__main__":
             # Enter a wait state for the next target to be connected
             max_tries = 3
             input("Press enter to continue...\n")
+            set_target_mode("FLASH_RETRY")
         else:
             pass
 

@@ -1,12 +1,20 @@
 #define BOOT_PIN  26
 #define NRST_PIN  27
 
+#define RED_LED   16
+#define BLUE_LED  5
+#define GREEN_LED 19
+
 #define BUF_SIZE  2
 
 typedef enum {
   STATE_OFF       = 0x30,
   STATE_BOOTMODE  = 0x31,
   STATE_RESET     = 0x32,
+
+  STATE_RED       = 0x33,
+  STATE_BLUE      = 0x34,
+  STATE_GREEN     = 0x35,
 } State;
 
 uint8_t command[BUF_SIZE];
@@ -27,8 +35,16 @@ void setup() {
   pinMode(BOOT_PIN, OUTPUT);
   pinMode(NRST_PIN, OUTPUT);
 
+  pinMode(RED_LED, OUTPUT);
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+
   digitalWrite(BOOT_PIN, HIGH);
   digitalWrite(NRST_PIN, HIGH);
+
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
 }
 
 void loop() {
@@ -62,6 +78,22 @@ void loop() {
         digitalWrite(NRST_PIN, LOW);
         delay(100);
         digitalWrite(NRST_PIN, HIGH);
+        break;
+
+      case STATE_RED:
+        digitalWrite(RED_LED, HIGH);
+        digitalWrite(BLUE_LED, LOW);
+        digitalWrite(GREEN_LED, LOW);
+        break;
+      case STATE_BLUE:
+        digitalWrite(RED_LED, LOW);
+        digitalWrite(BLUE_LED, HIGH);
+        digitalWrite(GREEN_LED, LOW);
+        break;
+      case STATE_GREEN:
+        digitalWrite(RED_LED, LOW);
+        digitalWrite(BLUE_LED, LOW);
+        digitalWrite(GREEN_LED, HIGH);
         break;
 
       default:
