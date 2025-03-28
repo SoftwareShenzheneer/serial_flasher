@@ -1,8 +1,8 @@
 import os
 
-directory = 'new_serial_ids'
+directory = "new_unique_bin"
 
-with open("unique_binaries.txt", "w+") as outp:
+with open("unique_bin.txt", "w+") as outp:
     for filename in os.listdir(directory):
         f = os.path.join(directory, filename)
         outp.write(filename + "\r\n")

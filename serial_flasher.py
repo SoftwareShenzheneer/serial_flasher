@@ -183,6 +183,34 @@ def verify_unique_binary():
 
     return ret
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+To do: Check if flash is encrypted before starting
+"""
 if __name__ == "__main__":
     state = "FETCH_UNIQUE_BIN"
     uuid_index = 0
@@ -196,7 +224,8 @@ if __name__ == "__main__":
     with open('unique_bin.txt', 'r+') as inp:
         for num, line in enumerate(inp):
             # Strip the new line, read the binary name and add .bin to its name
-            unique_binary_list.append("unique_bin/" + line.strip() + ".bin")
+            # unique_binary_list.append("unique_bin/" + line.strip() + ".bin")
+            unique_binary_list.append("unique_bin/" + line.strip())
             # print(f"[DEBUG] ",unique_binary_list[num])
 
     for i in range (len(unique_binary_list)):
