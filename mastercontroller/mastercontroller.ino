@@ -1,4 +1,4 @@
-#define BOOT_PIN  26
+#define BOOT_PIN  25
 #define NRST_PIN  27
 
 #define RED_LED   16
