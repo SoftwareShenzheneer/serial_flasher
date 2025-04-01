@@ -55,11 +55,9 @@ void loop() {
       /* POWER is LOW, BOOT don't care */
       /* Ideally I want to completely cut power here but I canot drive the target from the host so perhaps we should use the RESET line instead. */
       case STATE_OFF:
-        digitalWrite(BOOT_PIN, LOW);
-        delay(100);
-        digitalWrite(NRST_PIN, LOW);
-        delay(100);
-        digitalWrite(NRST_PIN, HIGH);
+        digitalWrite(RED_LED, LOW);
+        digitalWrite(BLUE_LED, LOW);
+        digitalWrite(GREEN_LED, LOW);
         break;
 
       /* BOOT is LOW, POWER is HIGH */

@@ -11,7 +11,7 @@ import sys
 import time
 
 VERBOSE = False
-TEST_CASES = False
+TEST_CASES = True
 
 SERIAL_ID_BYTE = 15
 SERIAL_ID_VERIFICATION_IDX = 9
@@ -64,6 +64,12 @@ verification_command = [
         'verify_flash',
         '--diff', 'yes',
         '0x1C000', 'unique_binary.bin'
+        ]
+
+check_encryption_command = [
+        'esptool',
+        '-p', TARGET_PORT,
+        'get_security_info'
         ]
 
 # Some debugging commands to verify the flashing commands - can also be used to generate a single command for manual flashing
@@ -158,13 +164,13 @@ def verify_unique_binary():
         if TEST_CASES:
             if introduce_error == 2:
                 print(f"\r\n############################ introducing an error! ############################")
-                verification_command[SERIAL_ID_VERIFICATION_IDX] = "unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
+                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
             elif introduce_error == 3:
                 print(f"\r\n############################ introducing an error! ############################")
-                verification_command[SERIAL_ID_VERIFICATION_IDX] = "unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
+                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
             elif introduce_error == 4:
                 print(f"\r\n############################ introducing an error! ############################")
-                verification_command[SERIAL_ID_VERIFICATION_IDX] = "unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
+                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
             else:
                 verification_command[SERIAL_ID_VERIFICATION_IDX] = str(unique_binary_list[unique_binary_list_index])
         else:
@@ -183,34 +189,29 @@ def verify_unique_binary():
 
     return ret
 
+def verify_encryption():
+    print(f"[VERIFICATION] Verifying flash encryption")
+    ret = -1
+    try:
+        global sercom2
+        close_serial(sercom2)
+        out = subprocess.check_output(check_encryption_command, encoding='utf-8')
+        if out.find("Flash Encryption: Enabled") > 0:
+            if out.find("Secure Boot: Enabled") > 0:
+                # print(f"[VERIFICATION] Flash encryption enabled.")
+                ret = 1
+
+        if out.find("Flash Encryption: Disabled") > 0:
+            if out.find("Secure Boot: Disabled") > 0:
+                # print(f"[VERIFICATION] Flash encryption disabled.")
+                ret = 0
+    except Exception as e:
+        print(f"Error: {e}.")
+
+    sercom2 = open_serial(TARGET_PORT)
+    return ret
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-To do: Check if flash is encrypted before starting
-"""
 if __name__ == "__main__":
     state = "FETCH_UNIQUE_BIN"
     uuid_index = 0
@@ -224,8 +225,7 @@ if __name__ == "__main__":
     with open('unique_bin.txt', 'r+') as inp:
         for num, line in enumerate(inp):
             # Strip the new line, read the binary name and add .bin to its name
-            # unique_binary_list.append("unique_bin/" + line.strip() + ".bin")
-            unique_binary_list.append("unique_bin/" + line.strip())
+            unique_binary_list.append("new_unique_bin/" + line.strip() + ".bin")
             # print(f"[DEBUG] ",unique_binary_list[num])
 
     for i in range (len(unique_binary_list)):
@@ -252,9 +252,9 @@ if __name__ == "__main__":
                 print(f"[STATEMACHINE] No more binaries available, exiting..")
                 break
             serial_command[SERIAL_ID_BYTE] = str(unique_binary_list[unique_binary_list_index])
-            print(f"###################################################")
+            print(f"#######################################################")
             print(f"{serial_command[SERIAL_ID_BYTE]}")
-            print(f"###################################################")
+            print(f"#######################################################")
             state = "FORCE_BOOT"
 
         # 2. Send serial command to mastercontroller to enable BOOT mode
