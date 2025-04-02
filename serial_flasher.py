@@ -164,13 +164,13 @@ def verify_unique_binary():
         if TEST_CASES:
             if introduce_error == 2:
                 print(f"\r\n############################ introducing an error! ############################")
-                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
+                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/050415dc-5764-4f57-bb42-daae7324d8fc.bin"
             elif introduce_error == 3:
                 print(f"\r\n############################ introducing an error! ############################")
-                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
+                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/050415dc-5764-4f57-bb42-daae7324d8fc.bin"
             elif introduce_error == 4:
                 print(f"\r\n############################ introducing an error! ############################")
-                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
+                verification_command[SERIAL_ID_VERIFICATION_IDX] = "new_unique_bin/050415dc-5764-4f57-bb42-daae7324d8fc.bin"
             else:
                 verification_command[SERIAL_ID_VERIFICATION_IDX] = str(unique_binary_list[unique_binary_list_index])
         else:
@@ -310,9 +310,12 @@ if __name__ == "__main__":
             max_num_of_lines = 0
             start_time = time.time()
             set_target_mode("RESET")
+            seconds = 0
             while (time.time() - start_time < PARSING_TIMEOUT):
                 if sercom2 and sercom2.is_open:
                     data = sercom2.readline()
+                    print(f"Seconds: {seconds}", end="\r")
+                    seconds = seconds + 1
                     if data:
                         try:
                             line = data.decode('utf-8').strip()
