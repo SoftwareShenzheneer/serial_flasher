@@ -9,14 +9,16 @@ import serial
 import subprocess
 import sys
 import time
+import math
+import os
 
 VERBOSE = False
-TEST_CASES = True
+TEST_CASES = False
 
 SERIAL_ID_BYTE = 15
 SERIAL_ID_VERIFICATION_IDX = 9
 
-PARSING_TIMEOUT = 5
+PARSING_TIMEOUT = 180
 
 sercom1 = None # Serial connection with master controller
 sercom2 = None # Serial connection with flashing target
@@ -24,12 +26,13 @@ sercom2 = None # Serial connection with flashing target
 introduce_error = 0
 
 # Configure your master controller settings here
-MASTER_PORT = "COM11"
+MASTER_PORT = "COM3"
 # Configure your target settings here
 TARGET_PORT = "COM18"
 TARGET_CHIP = "esp32s3"
 TARGET_BAUDRATE = "460800"
-TARGET_FLASH_SIZE = "16MB"
+TARGET_FLASH_SIZE = "8MB"
+TARGET_FLASH_SPEED = "80m"
 serial_command = [
         'esptool',
         '-p', TARGET_PORT,
@@ -38,7 +41,7 @@ serial_command = [
         'write_flash',
         '--flash_mode', 'dio',
         '--flash_size', TARGET_FLASH_SIZE,
-        '--flash_freq', '40m',
+        '--flash_freq', TARGET_FLASH_SPEED,
         '0x1C000', 'unique_binary.bin',
         ]
 
@@ -134,6 +137,7 @@ def flash_target(stage=None):
                 subprocess.Popen(serial_command, stdout=subprocess.DEVNULL, shell=True).wait()
         except Exception as e:
             print(f"[DEBUG] [ERROR] Error with running subprocess.")
+            pass
 
     if stage == "APPLICATION":
         print(f"[FLASH] Application")
@@ -144,6 +148,7 @@ def flash_target(stage=None):
                 subprocess.Popen(application_command, stdout=subprocess.DEVNULL, shell=True).wait()
         except Exception as e:
             print(f"[DEBUG] [ERROR] Error with running subprocess.")
+            pass
 
     print(f"[FLASH] Flashing target done - This does not say anything about succesful flashing.")
     # After flashing is completed, open up the serial port again to make it available for parsing
@@ -159,8 +164,6 @@ def verify_unique_binary():
     introduce_error = introduce_error + 1
 
     try:
-        # verification_command[SERIAL_ID_VERIFICATION_IDX] = str(unique_binary_list[unique_binary_list_index])
-        # verification_command[SERIAL_ID_VERIFICATION_IDX] = "unique_bin/04E3E1BD-FE70-40E7-A8FD-85D8ADE979C9.bin"
         if TEST_CASES:
             if introduce_error == 2:
                 print(f"\r\n############################ introducing an error! ############################")
@@ -176,16 +179,17 @@ def verify_unique_binary():
         else:
             verification_command[SERIAL_ID_VERIFICATION_IDX] = str(unique_binary_list[unique_binary_list_index])
 
-        unique_binary_list_index = unique_binary_list_index + 1
-        out = subprocess.check_output(verification_command, encoding='utf-8')
+        out = subprocess.check_output(verification_command, shell=True, encoding='utf-8')
         if out.find("-- verify OK") > 0:
-            print("[VERIFICATION] Verification success")
+            # print("[VERIFICATION] Verification success")
             ret = 0
         else:
             print("[VERIFICATION] Verification failed, but I don't know why")
+            pass
+
     except Exception as e:
-        print("[VERIFICATION] Verification failed")
         # print("[VERIFICATION] Error: ", str(e))
+        pass
 
     return ret
 
@@ -207,6 +211,7 @@ def verify_encryption():
                 ret = 0
     except Exception as e:
         print(f"Error: {e}.")
+        pass
 
     sercom2 = open_serial(TARGET_PORT)
     return ret
@@ -220,6 +225,12 @@ if __name__ == "__main__":
     count = 0
     max_tries = 3
     flash_ok_set = False
+
+    with open("unique_bin.txt", "w+") as outp:
+        dir = "new_unique_bin"
+        for filename in os.listdir(dir):
+            f = os.path.join(dir, filename)
+            outp.write(filename[:-4] + "\n")
 
     # Generate the list of unique binaries to flash
     with open('unique_bin.txt', 'r+') as inp:
@@ -277,9 +288,8 @@ if __name__ == "__main__":
             if verify_unique_binary() == 1:
                 print("[UNIQUE_BIN] Unique binary identification failed, retry flashing..")
                 state = "FETCH_UNIQUE_BIN"
-                max_tries = max_tries - 1
                 # We are retrying the previous unique binary so we need to undo the unique binary increment
-                unique_binary_list_index = unique_binary_list_index - 1
+                max_tries = max_tries - 1
                 print(f"[UNIQUE_BIN] Attempts left: {max_tries}.")
                 if 0 == max_tries:
                     print(f"[UNIQUE_BIN] Aborting...")
@@ -287,10 +297,7 @@ if __name__ == "__main__":
                     set_target_mode("FLASH_NOK")
                     state = "FETCH_UNIQUE_BIN"
                 else:
-                    ########## DESIGN CHOICE: Do we ditch the failed UUID, or do we retry? #########
-                    # state = "FETCH_UNIQUE_BIN"
                     state = "FORCE_BOOT"
-                    ########## DESIGN CHOICE: Do we ditch the failed UUID, or do we retry? #########
             else:
                 state = "FLASH_APPLICATION"
 
@@ -304,34 +311,48 @@ if __name__ == "__main__":
             state = "PARSE_OUTPUT"
 
         # 6. Parse incoming data and look for expected debug tags
-        #    [PROD][OK] & [PROD][NO_SERIAL_ID]
+        #    [PROD][OK]
         if state == "PARSE_OUTPUT":
             print(f"[STATEMACHINE] PARSE_OUTPUT")
             max_num_of_lines = 0
             start_time = time.time()
+            prev_time = 0
             set_target_mode("RESET")
-            seconds = 0
             while (time.time() - start_time < PARSING_TIMEOUT):
+                current_time = time.time() - start_time
+                if not (math.floor(prev_time) == math.floor(current_time)):
+                    print(f"[DEBUG][CHRONO] {math.floor(time.time() - start_time)}")
+                    prev_time = current_time
                 if sercom2 and sercom2.is_open:
                     data = sercom2.readline()
-                    print(f"Seconds: {seconds}", end="\r")
-                    seconds = seconds + 1
                     if data:
                         try:
                             line = data.decode('utf-8').strip()
                             print(line, flush=True)
                             if flash_ok_set == False:
                                 flash_ok_set = True
-                                set_target_mode("FLASH_OK");
                                 if "[PROD][OK]" in line:
                                     set_target_mode("FLASH_OK");
+                                    print(f"[SERIAL_ID_CHECK] {serial_command[SERIAL_ID_BYTE]}")
+                                    try:
+                                        print(f"{serial_id_comman[SERIAL_ID_BYTE]}")
+                                    except:
+                                        pass
+                                    flash_ok_set = True
+                                    converted_source = serial_command[SERIAL_ID_BYTE].replace("/", "\\\\")
+                                    destination = serial_command[SERIAL_ID_BYTE].replace("new", "used")
+                                    move_comm = [ "move", converted_source, destination ]
+                                    subprocess.Popen(move_comm, shell=True).wait()
+                                    unique_binary_list_index = unique_binary_list_index + 1
+                                    break
                         except:
                             print(data)
+                            pass
 
-                # print(f"Breaker is: {max_num_of_lines}.")
                 max_num_of_lines = max_num_of_lines + 1
                 if max_num_of_lines == 400:
                     print(f"[PARSER] We've gotten too many lines fed, breaking..")
+                    set_target_mode("FLASH_NOK");
                     break
             state = "FETCH_UNIQUE_BIN"
 
