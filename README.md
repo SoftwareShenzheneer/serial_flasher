@@ -10,10 +10,8 @@ ___
 
 ## Project Description
 The goal of this project is to solve the tedious issue of flashing a lot of devices with individual binary files. The need for this surfaced when I wanted to flash individual UUID's to devices.
-This issue is solved by assigning a mastercontroller which controls the boot state of the target device. The current implementation covers a BOOT and RESET mode. This can be built upon to realise any arbitrary number of production states.
+This issue is solved by assigning a mastercontroller which controls the boot state of the target device. The current implementation covers a BOOT and RESET mode. This can be built upon to realise any arbitrary number of production states. Currently the master controller also controls the feedback LEDs upon flashing completion, whether that is successful, ongoing or failed.
 
-To do:
-Additionally, the target device's serial port will be read and analysed for expected debug output in order to assess whether or not a flashing attempt was succesful. Upon succesful flashing, a GREEN LED will light up. An unsuccesful attempt will light up a YELLOW LED. After a third failed attempt in a row, a RED LED will light up indicating to the user to swap out the module and manually assess the flashing problem with said unit.
 ___
 
 ## Install
@@ -38,6 +36,9 @@ Else download pip using the following command:
 pip install esptool
 ```
 ___
+
+## Prerequisites
+The script starts off with gathering a list of unique binaries from the unique binary directory. Up to a size of 1050 has been tested. Providing the unique binaries is required for the script to generate and iterate this list. Do not forget to adjust the serial ports to the actual ports used in your personal case.
 
 ## Use
 Either put the files which need to be downloaded in the file path as stated in the script, or adjust the file path to point to the location of your binaries.
